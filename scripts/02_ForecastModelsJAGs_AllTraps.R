@@ -85,6 +85,7 @@ for(s in 1:length(dates)){
       #filter(time <= "2019-08-28")%>%
       arrange(time)
     
+    full_ebullition_model_alltrap_jags[1,7] <- 0.5
     # fill in any missing covariate data This is done using impute TS --> but other models might be better
     full_ebullition_model_alltrap_jags$water_temp_dam <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam,option = "linear")
     full_ebullition_model_alltrap_jags$water_temp_dam_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam_sd,option = "linear")
