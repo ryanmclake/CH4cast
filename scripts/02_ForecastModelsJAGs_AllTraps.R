@@ -62,7 +62,7 @@ model {
 }
 ", file = model.ar2)
 
-# Dates to forecast
+# Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
 dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
            as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
@@ -72,21 +72,24 @@ dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
            as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
            as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
 
+
+# Dates to TEST FORECAST BY  REVIEWERS
+#dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
+
 # Sequence through the dates and the traps and execute the JAGS model
 for(s in 1:length(dates)){
     
     # Select site and forecast date (#hashed out lines are for testing purposes)
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
-      filter(time <= dates[s])
-      #filter(time <= "2019-08-12")
+      filter(time <= dates[s])%>%
+      #filter(time <= "2019-08-28")%>%
+      arrange(time)
     
-    # fill in any missing covariate data
+    # fill in any missing covariate data This is done using impute TS --> but other models might be better
     full_ebullition_model_alltrap_jags$water_temp_dam <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam,option = "linear")
     full_ebullition_model_alltrap_jags$water_temp_dam_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam_sd,option = "linear")
     full_ebullition_model_alltrap_jags$hobo_temp <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp,option = "linear")
     full_ebullition_model_alltrap_jags$hobo_temp_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp_sd,option = "linear")
-    
-    full_ebullition_model_alltrap_jags[1,10] <- 0.5
     full_ebullition_model_alltrap_jags$log_ebu_rate_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$log_ebu_rate_sd,option = "linear")
 
     # start the data frame used in JAGS on the first day ebullition was collected from the upstream traps
@@ -106,7 +109,7 @@ for(s in 1:length(dates)){
     temp <- ncvar_get(nc,'temp')
     
     #prepare forecast temperatures from FLARE to be appended to the data frame recognized by jags
-    forecast_jags <- as.data.frame(cbind(time,temp[1:14,1:210,7], temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
+    forecast_jags <- as.data.frame(cbind(time,temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
       filter(time>=start_forecast)%>%
       melt(., id = 'time')%>%
       group_by(time)%>%
@@ -114,19 +117,16 @@ for(s in 1:length(dates)){
       summarize(water_temp_dam = mean(value, na.rm = TRUE),
                 water_temp_dam_sd = sd(value, na.rm = TRUE))%>%
       arrange(time)%>%
-      mutate(air_temp = NA)%>%
-      mutate(air_temp_sd = NA)%>%
       mutate(hobo_temp = NA)%>%
       mutate(hobo_temp_sd = 0.3)%>%
       mutate(log_ebu_rate = NA)%>%
       mutate(log_ebu_rate_sd = 1)%>%
-      select(time, air_temp, air_temp_sd, hobo_temp, hobo_temp_sd, water_temp_dam, water_temp_dam_sd, log_ebu_rate, log_ebu_rate_sd)
-    
-    # ensure that the forecast time is the same format as the full_ebullition_model_jags time
-    forecast_jags$time <- as_date(forecast_jags$time)
+      select(time, hobo_temp, hobo_temp_sd, water_temp_dam, water_temp_dam_sd, log_ebu_rate, log_ebu_rate_sd)%>%
+      mutate(time = as.Date(time))
+  
     
     # Prepare forecast so it can be saved as an .rds file and uploaded to github
-    forecast_save_temp <- as.data.frame(cbind(time,temp[1:14,1:210,7], temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
+    forecast_save_temp <- as.data.frame(cbind(time,temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
       filter(time>=start_forecast)%>%
       melt(., id = 'time')%>%
       group_by(time)%>%
@@ -139,18 +139,9 @@ for(s in 1:length(dates)){
                 var = var(value),
                 sd = sd(value))
     
-    # Save the FLARE water temps as a .rds file so they can be analyzed against the observed HOBO temperatures
-    #saveRDS(forecast_save_temp, paste0("./forecast_output/FLARE_temp_forecast_alltraps",dates[s],".rds"))
+    saveRDS(forecast_save_temp, paste0("./forecast_output/FLARE_temp_forecast_alltraps",dates[s],".rds"))
     
-    # Get the forecast water temps from FLARE with all ensembles
-    # forecast_ensembles <- as.data.frame(cbind(time, temp[1:14,1:210,5], temp[1:14,1:210,6], temp[1:14,1:210,7], temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
-    #   filter(time>=start_forecast)%>%
-    #   melt(., id = 'time')%>%
-    #   select(time, value)
-      # group_by(time)%>%
-      # mutate(value = as.numeric(value))%>%
-      # summarize(mean = mean(value))
-    
+    # Close out current NC file
     nc_close(nc)
     
     
@@ -164,16 +155,26 @@ for(s in 1:length(dates)){
                         C_mean = full_ebullition_model_alltrap_jags$water_temp_dam,
                         tau.pre = 1/(full_ebullition_model_alltrap_jags$water_temp_dam_sd ^ 2))
     
-    jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
+    jags.params.lm.eval = c("sd.pro", "mu", "beta")
     
     
     j.lm.model   <- jags.model(file = model.lm,
-                            data = jags.data.lm,
-                            n.chains = 3)
+                               data = jags.data.lm,
+                               n.chains = 3)
+    
+    eval  <- coda.samples(model = j.lm.model,
+                               variable.names = jags.params.lm.eval,
+                               n.iter = 30000, n.burnin = 10000)
+
+    gelman <- gelman.diag(eval)
+    saveRDS(gelman, paste0("./forecast_output/temp_scale_gelman_diagnostics_",dates[s],".rds"))
+    
+    
+    jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
     
     jags.out   <- coda.samples(model = j.lm.model,
                                variable.names = jags.params.lm, 
-                               n.iter = 20000, n.burnin = 5000)
+                               n.iter = 30000, n.burnin = 10000)
     
     scale_out_forecast <- jags.out %>%
       spread_draws(Y[day]) %>%
@@ -195,17 +196,11 @@ for(s in 1:length(dates)){
                 var = var(Y),
                 sd = sd(Y),.groups = "drop")
     
-    #scale <- lm(hobo_temp~water_temp_dam, data = full_ebullition_model_alltrap_jags)
-    # full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap_jags%>%
-    #   mutate(forecast_temp = ifelse(is.na(hobo_temp), water_temp_dam * scale$coefficients[2] + scale$coefficients[1], hobo_temp))%>%
-    #   mutate(forecast_temp_sd = ifelse(is.na(hobo_temp_sd), water_temp_dam_sd, hobo_temp_sd))
     
     full_ebullition_model_alltrap_jags <- left_join(full_ebullition_model_alltrap_jags, scale_out_forecast[,c(1,2,12)], by = "time")%>%
         mutate(forecast_temp = ifelse(is.na(hobo_temp), mean, hobo_temp))%>%
-        mutate(forecast_temp_sd = ifelse(is.na(hobo_temp), sd, hobo_temp_sd))
+        mutate(forecast_temp_sd = ifelse(is.na(hobo_temp_sd), sd, hobo_temp_sd))
     
-    # Make Time an independent data frame (Will be used later when we extract results from jags model)
-    time <- as.data.frame(full_ebullition_model_alltrap_jags$time)
     
     # Generate the data frame that is recognized by the jags model
     jags.data.ar = list(X = full_ebullition_model_alltrap_jags$log_ebu_rate, 
@@ -234,18 +229,21 @@ for(s in 1:length(dates)){
                              n.chains = 3)
     
     #Run JAGS model and sample from the posteriors
-    # eval  <- coda.samples(model = j.model,
-    #                            variable.names = c("sd.pro", "mu2", "phi", "omega"),
-    #                            n.iter = 20000, n.burnin = 5000)
-    # 
-    # gelman <- gelman.diag(eval)
-    # saveRDS(gelman, paste0("./forecast_output/gelman_diagnostics_",dates[s],".rds"))
+    eval_ebu  <- coda.samples(model = j.model,
+                               variable.names = c("sd.pro", "mu2", "phi", "omega"),
+                               n.iter = 30000, n.burnin = 10000)
+
+    gelman_ebu <- gelman.diag(eval_ebu)
+    
+    plot(eval_ebu)
+    
+    saveRDS(gelman_ebu, paste0("./forecast_output/ebu_model_gelman_diagnostics_",dates[s],".rds"))
     
     
     #Run JAGS model and sample from the posteriors
     jags.out   <- coda.samples(model = j.model,
                                variable.names = jags.params.ar, 
-                               n.iter = 20000, n.burnin = 5000)
+                               n.iter = 30000, n.burnin = 10000)
     
     #Use TidyBayes package to clean up the JAGS output
     ebu_out_forecast <- jags.out %>%
@@ -295,9 +293,6 @@ for(s in 1:length(dates)){
       mutate(forecast_date = start_forecast)
     saveRDS(forecast_saved_ebu, paste0("./forecast_output/ebullition_hidden_markov_forecast_alltrap_",dates[s],".rds"))
 
-    saveRDS(ebu_out_IC, paste0("./forecast_output/ebullition_hidden_markov_forecast_alltrap_2_",dates[s],".rds"))
-    
-    # 
     # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
     ########################################################################################
     ebu_out_parms <- jags.out %>%

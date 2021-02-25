@@ -71,7 +71,7 @@ unlink(infile1)
 ctd_sum <- ctd %>% select(Reservoir, Date, Site, Depth_m, Temp_C)%>%
   filter(Reservoir == "FCR" & Site == 50)%>%
   filter(Date < "2018-07-05" & Date >= "2017-05-07")%>%
-  filter(Depth_m > 1 & Depth_m <= 3)%>%
+  filter(Depth_m > 2 & Depth_m <= 3)%>%
   rename(time = Date)%>%
   mutate(time = as_date(time))%>%
   select(time, Depth_m, Temp_C)%>%
@@ -85,14 +85,15 @@ ctd_sum <- ctd %>% select(Reservoir, Date, Site, Depth_m, Temp_C)%>%
          time != "2017-07-09" &
          time != "2017-07-10" &
          time != "2017-07-11" &
-         time != "2017-07-12")
+         time != "2017-07-12" &
+         time != "2017-10-08")
 
 #make an observed damn site water temp column.
 water_temp <- rbind(ctd_sum, cat_sum)
 
 # Pull in hobo data 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-hobo_t1 <- read_csv("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.csv")%>%
+hobo_t1 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
   filter(Site == "T1e1") %>%
   dplyr::rename(time = DateTime)%>%
   dplyr::mutate(time = as_date(time))%>%
@@ -104,7 +105,7 @@ temp_model_t1 <- left_join(hobo_t1,water_temp, by = "time")%>%
   mutate(trap_id = "T1e1")
 
 # Hobo data for Trap 2
-hobo_t2 <- read_csv("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.csv")%>%
+hobo_t2 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
   filter(Site == "T1e2") %>%
   dplyr::rename(time = DateTime)%>%
   dplyr::mutate(time = as_date(time))%>%
@@ -116,7 +117,7 @@ temp_model_t2 <- left_join(hobo_t2,water_temp, by = "time")%>%
   mutate(trap_id = "T1e2")
 
 # Hobo data for Trap 3
-hobo_t3 <- read_csv("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.csv")%>%
+hobo_t3 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
   filter(Site == "T1e3") %>%
   dplyr::rename(time = DateTime)%>%
   dplyr::mutate(time = as_date(time))%>%
@@ -128,7 +129,7 @@ temp_model_t3 <- left_join(hobo_t3,water_temp, by = "time")%>%
   mutate(trap_id = "T1e3")
 
 # Hobo data for Trap 4
-hobo_t4 <- read_csv("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.csv")%>%
+hobo_t4 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
   filter(Site == "T1e4") %>%
   dplyr::rename(time = DateTime)%>%
   dplyr::mutate(time = as_date(time))%>%
@@ -168,7 +169,8 @@ full_ebullition_model <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
 
 full_ebullition_model_alltrap <- full_ebullition_model%>%
   group_by(time)%>%
-  summarise_all(funs(mean), na.rm = TRUE)
+  summarise_all(funs(mean), na.rm = TRUE)%>%
+  select(-trap_id)
 
 full_ebullition_model_alltrap$water_temp_dam[is.nan(as.numeric(full_ebullition_model_alltrap$water_temp_dam))] <- NA
 full_ebullition_model_alltrap$water_temp_dam_sd[is.nan(as.numeric(full_ebullition_model_alltrap$water_temp_dam_sd))] <- NA
@@ -179,17 +181,8 @@ full_ebullition_model_alltrap$hobo_temp_sd[is.nan(as.numeric(full_ebullition_mod
 
 full_ebullition_model_alltrap$log_ebu_rate[full_ebullition_model_alltrap$log_ebu_rate == "-Inf"] <- NA
 
-# Remove 2018 because it is only derived from 2 traps
-# full_ebullition_model_alltrap <- full_ebullition_model_alltrap%>%
-#   mutate(year = lubridate::year(time))%>%
-#   mutate(log_ebu_rate = ifelse(year == "2018", NA, log_ebu_rate))
-
 # Perform a check standard to confirm the Upstream Temps closely match the Hobo Temps
-a <- ggplot(full_ebullition_model_alltrap, aes(water_temp_dam, hobo_temp, color = trap_id))+
+a <- ggplot(full_ebullition_model_alltrap, aes(water_temp_dam, hobo_temp))+
   geom_point()+
   geom_smooth(method = "lm")
-fig <- ggplotly(a)
-fig
 
-lm <- lm(hobo_temp ~ water_temp_dam, data = full_ebullition_model_alltrap)
-summary(lm)
