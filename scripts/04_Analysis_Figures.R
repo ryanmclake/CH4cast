@@ -437,28 +437,26 @@ stats_all_bias_base <- trap_all_partition %>%
   na.omit(.)%>%
   group_by(time)%>%
   filter(row_number(time) == 1) %>%
-  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
+  mutate(Bias = abs(exp(mean)) - abs(exp(log_ebu_rate)))%>%
   mutate(model = "A: HHM forecast model")%>%
   ungroup(.)
 
 base_model_NSE <- stats_all_bias_base %>%
   select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(mean, log_ebu_rate))
+  summarize(NSE_model = NSE(exp(mean), exp(log_ebu_rate)))
 
 stats_all_bias_null <- trap_null_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(time)%>%
   filter(row_number(time) == 1) %>%
-  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
+  mutate(Bias = abs(exp(mean)) - abs(exp(log_ebu_rate)))%>%
   mutate(model = "B: Persistence null forecast model")%>%
   ungroup(.)
 
-mean(stats_all_bias_null$Bias)
-
 null_model_NSE <- stats_all_bias_null %>%
   select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(mean, log_ebu_rate))
+  summarize(NSE_model = NSE(exp(mean), exp(log_ebu_rate)))
 
 stats_all_bias <- bind_rows(stats_all_bias_base,stats_all_bias_null)
 
@@ -522,7 +520,7 @@ dev.off()
 
 daily_variance <- trap_all %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = var, group = days)) +
+  ggplot(., aes(x = days, y = exp(sd), group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
@@ -544,7 +542,7 @@ daily_variance <- trap_all %>%
 
 daily_variance_null <- trap_all_per_null %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = var, group = days)) +
+  ggplot(., aes(x = days, y = exp(sd), group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
