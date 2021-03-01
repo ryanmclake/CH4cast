@@ -28,11 +28,13 @@ trap_all_per_null <- list.files(pattern = "ebullition_null_persistence_forecast_
 trap_compare <- left_join(trap_all, trap_all_per_null, by = "time")
 
 
-
+### Gelman rubin doagnostics ###
 gelman <- list.files(pattern = "gelman_diagnostics_") %>%
   map(readRDS) %>% 
   data.table::rbindlist()
 
+
+### Parameter estimates ###
 trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
   map(readRDS) %>% 
   data.table::rbindlist() %>%
@@ -45,6 +47,9 @@ trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
             sd_observe = sd(phi),
             mean_temp = mean(omega),
             sd_temp = sd(omega))
+
+
+##### UNCERTAINTY PARTITIONING DATA ####
 
 trap_all_IC <- list.files(pattern = "initial_condition_") %>%
   map(readRDS) %>% 
@@ -86,347 +91,6 @@ all_partitioned_melt <- all_partitioned%>%
   select(-sum_check)%>%
   melt(., id = c("time","forecast_date","days"))
 
-##### UNCERTAINTY PARTITIONING DATA ####
-
-
-
-###########################################################################################################
-# trap1_null <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_nullmodel_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")%>%
-#   rename(var_null = var)%>%
-#   rename(mean_null = mean)%>% rename(upper_null = upper)%>% rename(lower_null = lower)%>% rename(sd_null = sd)%>%
-#   select(var_null,mean_null,upper_null,lower_null,sd_null)
-# 
-# trap1_all <- cbind(trap1_all,trap1_null)
-# 
-# trap1_IC <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_ICon_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")%>%
-#   rename(var_IC = var)%>%
-#   rename(sd_IC = sd)%>%
-#   select(var_IC, sd_IC)
-# 
-# trap1_PARA <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PARAon_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")%>%
-#   rename(var_PARA = var)%>%
-#   rename(sd_PARA = sd)%>%
-#   select(var_PARA, sd_PARA)
-# 
-# trap1_PROCESS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PROCESSon_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")%>%
-#   rename(var_PROCESS = var)%>%
-#   rename(sd_PROCESS = sd)%>%
-#   select(var_PROCESS, sd_PROCESS)
-# 
-# trap1_DRIVE <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_DRIVEon_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")%>%
-#   rename(var_DRIVE = var)%>%
-#   rename(sd_DRIVE = sd)%>%
-#   select(var_DRIVE, sd_DRIVE)
-# 
-# trap1_PARMS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_parameters_T1e1")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e1")
-# 
-# var1_all <- cbind(trap1_IC, trap1_DRIVE, trap1_PARA, trap1_PROCESS)
-# 
-# var1_all_partitioned <- var1_all %>%
-#   mutate(sum_var = trap1_IC+trap1_DRIVE+trap1_PARA+trap1_PROCESS)%>%
-#   mutate(IC_proportion = trap1_IC/sum_var)%>%
-#   mutate(DRIVE_proportion = trap1_DRIVE/sum_var)%>%
-#   mutate(PARA_proportion = trap1_PARA/sum_var)%>%
-#   mutate(PROCESS_proportion = trap1_PROCESS/sum_var)%>%
-#   mutate(sum_check = PROCESS_proportion+PARA_proportion+DRIVE_proportion+IC_proportion)%>%
-#   select(IC_proportion,DRIVE_proportion,PARA_proportion,PROCESS_proportion)
-# 
-# 
-# trap1_all_partition <- trap1_all %>%
-#   cbind(., var1_all_partitioned)%>%
-#   mutate(sd_IC = sd*IC_proportion,
-#          sd_DRIVE = sd*DRIVE_proportion,
-#          sd_PROCESS = sd*PROCESS_proportion,
-#          sd_PARA = sd*PARA_proportion)%>%
-#   mutate(sum_check = PROCESS_proportion+PARA_proportion+DRIVE_proportion+IC_proportion)%>%
-#   group_by(path)%>%
-#   mutate(days = seq_along(path))
-# 
-# 
-# # TRAP 2 COMPILE
-# trap2_all <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_hidden_markov_forecast_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")
-# 
-# trap2_null <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_nullmodel_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")%>%
-#   rename(var_null = var)%>%
-#   rename(mean_null = mean)%>% rename(upper_null = upper)%>% rename(lower_null = lower)%>% rename(sd_null = sd)%>%
-#   select(var_null,mean_null,upper_null,lower_null,sd_null)
-# 
-# trap2_all <- cbind(trap2_all,trap2_null)
-# 
-# trap2_IC <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_ICon_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")%>%
-#   rename(var_IC = var)%>%
-#   select(var_IC)
-# 
-# trap2_PARA <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PARAon_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")%>%
-#   rename(var_PARA = var)%>%
-#   select(var_PARA)
-# 
-# trap2_PROCESS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PROCESSon_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")%>%
-#   rename(var_PROCESS = var)%>%
-#   select(var_PROCESS)
-# 
-# trap2_DRIVE <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_DRIVEon_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")%>%
-#   rename(var_DRIVE = var)%>%
-#   select(var_DRIVE)
-# 
-# trap2_PARMS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_parameters_T1e2")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e2")
-# 
-# var2_all <- cbind(trap2_IC, trap2_DRIVE, trap2_PARA, trap2_PROCESS)
-# 
-# var2_all_partitioned <- var2_all %>%
-#   mutate(sum_var = trap2_IC+trap2_DRIVE+trap2_PARA+trap2_PROCESS)%>%
-#   mutate(IC_proportion = trap2_IC/sum_var)%>%
-#   mutate(DRIVE_proportion = trap2_DRIVE/sum_var)%>%
-#   mutate(PARA_proportion = trap2_PARA/sum_var)%>%
-#   mutate(PROCESS_proportion = trap2_PROCESS/sum_var)%>%
-#   mutate(sum_check = PROCESS_proportion+PARA_proportion+DRIVE_proportion+IC_proportion)%>%
-#   select(IC_proportion,DRIVE_proportion,PARA_proportion,PROCESS_proportion)
-# 
-# 
-# trap2_all_partition <- trap2_all %>%
-#   cbind(., var2_all_partitioned)%>%
-#   mutate(sd_IC = sd*IC_proportion,
-#          sd_DRIVE = sd*DRIVE_proportion,
-#          sd_PROCESS = sd*PROCESS_proportion,
-#          sd_PARA = sd*PARA_proportion)%>%
-#   group_by(path)%>%
-#   mutate(days = seq_along(path))
-# 
-# # TRAP 3 COMPILE
-# trap3_all <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_hidden_markov_forecast_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")
-# 
-# trap3_null <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_nullmodel_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")%>%
-#   rename(var_null = var)%>%
-#   rename(mean_null = mean)%>% rename(upper_null = upper)%>% rename(lower_null = lower)%>% rename(sd_null = sd)%>%
-#   select(var_null,mean_null,upper_null,lower_null,sd_null)
-# 
-# trap3_all <- cbind(trap3_all,trap3_null)
-# 
-# trap3_IC <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_ICon_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")%>%
-#   rename(var_IC = var)%>%
-#   select(var_IC)
-# 
-# trap3_PARA <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PARAon_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")%>%
-#   rename(var_PARA = var)%>%
-#   select(var_PARA)
-# 
-# trap3_PROCESS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PROCESSon_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")%>%
-#   rename(var_PROCESS = var)%>%
-#   select(var_PROCESS)
-# 
-# trap3_DRIVE <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_DRIVEon_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")%>%
-#   rename(var_DRIVE = var)%>%
-#   select(var_DRIVE)
-# 
-# trap3_PARMS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_parameters_T1e3")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e3")
-# 
-# var3_all <- cbind(trap3_IC, trap3_DRIVE, trap3_PARA, trap3_PROCESS)
-# 
-# var3_all_partitioned <- var3_all %>%
-#   mutate(sum_var = trap3_IC+trap3_DRIVE+trap3_PARA+trap3_PROCESS)%>%
-#   mutate(IC_proportion = trap3_IC/sum_var)%>%
-#   mutate(DRIVE_proportion = trap3_DRIVE/sum_var)%>%
-#   mutate(PARA_proportion = trap3_PARA/sum_var)%>%
-#   mutate(PROCESS_proportion = trap3_PROCESS/sum_var)%>%
-#   mutate(sum_check = PROCESS_proportion+PARA_proportion+DRIVE_proportion+IC_proportion)%>%
-#   select(IC_proportion,DRIVE_proportion,PARA_proportion,PROCESS_proportion)
-# 
-# 
-# trap3_all_partition <- trap3_all %>%
-#   cbind(., var3_all_partitioned)%>%
-#   mutate(sd_IC = sd*IC_proportion,
-#          sd_DRIVE = sd*DRIVE_proportion,
-#          sd_PROCESS = sd*PROCESS_proportion,
-#          sd_PARA = sd*PARA_proportion)%>%
-#   group_by(path)%>%
-#   mutate(days = seq_along(path))
-# 
-# # TRAP 4 COMPILE
-# trap4_all <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_hidden_markov_forecast_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")
-# 
-# trap4_null <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_nullmodel_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")%>%
-#   rename(var_null = var)%>%
-#   rename(mean_null = mean)%>% rename(upper_null = upper)%>% rename(lower_null = lower)%>% rename(sd_null = sd)%>%
-#   select(var_null,mean_null,upper_null,lower_null,sd_null)
-# 
-# trap4_all <- cbind(trap4_all,trap4_null)
-# 
-# trap4_IC <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_ICon_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")%>%
-#   rename(var_IC = var)%>%
-#   select(var_IC)
-# 
-# trap4_PARA <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PARAon_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")%>%
-#   rename(var_PARA = var)%>%
-#   select(var_PARA)
-# 
-# trap4_PROCESS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_PROCESSon_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")%>%
-#   rename(var_PROCESS = var)%>%
-#   select(var_PROCESS)
-# 
-# trap4_DRIVE <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_partition_DRIVEon_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")%>%
-#   rename(var_DRIVE = var)%>%
-#   select(var_DRIVE)
-# 
-# trap4_PARMS <- dir_info() %>%
-#   filter(startsWith(path, "ebullition_parameters_T1e4")) %>%
-#   select(path) %>% 
-#   mutate(data = purrr::map(path, read_csv)) %>%
-#   unnest()%>%
-#   mutate(trap_id = "T1e4")
-# 
-# var4_all <- cbind(trap4_IC, trap4_DRIVE, trap4_PARA, trap4_PROCESS)
-# 
-# var4_all_partitioned <- var4_all %>%
-#   mutate(sum_var = trap4_IC+trap4_DRIVE+trap4_PARA+trap4_PROCESS)%>%
-#   mutate(IC_proportion = trap4_IC/sum_var)%>%
-#   mutate(DRIVE_proportion = trap4_DRIVE/sum_var)%>%
-#   mutate(PARA_proportion = trap4_PARA/sum_var)%>%
-#   mutate(PROCESS_proportion = trap4_PROCESS/sum_var)%>%
-#   mutate(sum_check = PROCESS_proportion+PARA_proportion+DRIVE_proportion+IC_proportion)%>%
-#   select(IC_proportion,DRIVE_proportion,PARA_proportion,PROCESS_proportion)
-# 
-# trap4_all_partition <- trap4_all %>%
-#   cbind(., var4_all_partitioned)%>%
-#   group_by(path)%>%
-#   mutate(days = seq_along(path))
-# 
-# # combine all of the traps output
-# parm_all <- rbind(trap1_PARMS, trap2_PARMS, trap3_PARMS, trap4_PARMS)
-# 
-# trap_all_partition <- rbind(trap1_all_partition, trap2_all_partition, trap3_all_partition, trap4_all_partition)
-#   group_by(forecast_date)%>%
-#   mutate(days = days-1)
-###########################################################################################################
 
 trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap, by = c("time"))
 trap_null_partition <- left_join(trap_all_per_null, full_ebullition_model_alltrap, by = c("time"))
@@ -472,10 +136,10 @@ ebullition_forecasts <- trap_all %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_point(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 3) +
   theme_bw()+
-  labs(title = "A: HHM forecast model")+
-  ylab(expression(paste("ln(Forecasted CH"[4]," Ebullition Rate)")))+
+  labs(title = "A: HHM forecast model (NSE = 0.70)")+
+  ylab(expression(paste("Forecasted CH"[4]," Ebullition Rate")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,150))+
+  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,200))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -493,13 +157,13 @@ null_forecasts <- trap_all_per_null %>%
   # geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
-  geom_line(color = "black")+
+  geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_point(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 3) +
   theme_bw()+
-  labs(title = "B: Persistence null forecast model")+
+  labs(title = "B: Persistence null forecast model (NSE = 0.60)")+
   ylab(expression(paste("ln(Forecasted CH"[4]," Ebullition Rate)")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,150))+
+  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,200))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -520,7 +184,7 @@ dev.off()
 
 daily_variance <- trap_all %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = exp(sd), group = days)) +
+  ggplot(., aes(x = days, y = var, group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
@@ -542,7 +206,7 @@ daily_variance <- trap_all %>%
 
 daily_variance_null <- trap_all_per_null %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = exp(sd), group = days)) +
+  ggplot(., aes(x = days, y = sd, group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
