@@ -294,10 +294,10 @@ process <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_process))
   geom_ribbon(aes(ymin = mean_process-sd_process, ymax = mean_process+sd_process), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "D: Model process")+
+  labs(title = "D: Model process error")+
   ylab(expression(paste(epsilon[t])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-16"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -315,7 +315,7 @@ intercept <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_interce
   labs(title = "C: Intercept Parameter")+
   ylab(expression(paste(beta[0])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-16"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -333,7 +333,7 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   labs(title = "B: Autoregressive parameter")+
   ylab(expression(paste(beta[1])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-16"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -351,7 +351,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   labs(title = "A: Temperature parameter")+
   ylab(expression(paste(beta[2])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-16"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -363,8 +363,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (temp+AR)/(intercept+process)
-paramter = (AR+temp)
-jpeg("FIGURE_6.jpg", width = 800, height = 600)
+jpeg("FIGURE_6.jpg", width = 800, height = 800)
 paramter
 dev.off()
 
