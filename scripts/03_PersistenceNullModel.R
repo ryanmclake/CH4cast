@@ -10,8 +10,7 @@ set.seed(329)
 f_days = 10
 
 # Dates to forecast
-dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
-           as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
+dates <- c(as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
@@ -25,8 +24,8 @@ RandomWalk = "
 model{
   # Priors
   x[1] ~ dnorm(x_ic,tau_init)
-  tau_add ~ dgamma(0.01,0.01)
-  tau_init ~ dgamma(0.01,0.01)
+  tau_add ~ dgamma(0.1,0.1)
+  tau_init ~ dgamma(0.1,0.1)
   
   # Process Model
   for(t in 2:n){
@@ -49,7 +48,7 @@ for(s in 1:length(dates)){
     
     targets$water_temp_dam <- imputeTS::na_interpolation(targets$water_temp_dam,option = "linear")
     targets$water_temp_dam_sd <- imputeTS::na_interpolation(targets$water_temp_dam_sd,option = "linear")
-    targets[1,10] <- 0.5
+    targets[1,7] <- 0.5
     targets$log_ebu_rate_sd <- imputeTS::na_interpolation(targets$log_ebu_rate_sd,option = "linear")
     
     

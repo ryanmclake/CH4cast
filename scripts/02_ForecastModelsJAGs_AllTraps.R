@@ -8,12 +8,12 @@
 model.lm = ("lm.txt")
 jagsscript = cat("
 model {  
-   mu ~ dnorm(0, 0.001);  # intercet
-   beta ~ dnorm(0,0.001); # cat temp paramter
+   mu ~ dnorm(0, 1);  # intercet
+   beta ~ dnorm(0,1); # cat temp paramter
    sd.pro ~ dunif(0.0001, 10000);
-   tau.pro <-  pow(sd.pro, -2);
+   tau.pro <-  pow(sd.pro, -2)
    
-   for(i in 1:N) {
+   for(i in 2:N) {
       predX[i] <- mu + C[i]*beta; 
       X[i] ~ dnorm(predX[i],tau.pro); # Process variation
       Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
@@ -31,11 +31,11 @@ model {
    
    #priors===================================================
    
-   mu2 ~ dnorm(0, 0.001);
+   mu2 ~ dnorm(0,1);
    sd.pro ~ dunif(0.0001, 10000);
    tau.pro <-  pow(sd.pro, -2);
-   phi ~ dnorm(0,0.001);
-   omega ~ dnorm(0,0.001);
+   phi ~ dnorm(0,1);
+   omega ~ dnorm(0,1);
    
    #Informative priors on initial conditions based on first observation
    predY[1] <- X[1];
@@ -63,8 +63,7 @@ model {
 ", file = model.ar2)
 
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
-           as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
+dates <- c(as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
@@ -165,8 +164,8 @@ for(s in 1:length(dates)){
     
     eval  <- coda.samples(model = j.lm.model,
                                variable.names = jags.params.lm.eval,
-                               n.iter = 30000, n.burnin = 10000)
-
+                               n.iter = 10000, n.burnin = 1000)
+    #plot(eval)
     gelman <- gelman.diag(eval)
     saveRDS(gelman, paste0("./forecast_output/temp_scale_gelman_diagnostics_",dates[s],".rds"))
     
@@ -175,7 +174,7 @@ for(s in 1:length(dates)){
     
     jags.out   <- coda.samples(model = j.lm.model,
                                variable.names = jags.params.lm, 
-                               n.iter = 30000, n.burnin = 10000)
+                               n.iter = 10000, n.burnin = 1000)
     
     scale_out_forecast <- jags.out %>%
       spread_draws(Y[day]) %>%
@@ -200,7 +199,7 @@ for(s in 1:length(dates)){
     
     full_ebullition_model_alltrap_jags <- left_join(full_ebullition_model_alltrap_jags, scale_out_forecast[,c(1,2,12)], by = "time")%>%
         mutate(forecast_temp = ifelse(is.na(hobo_temp), mean, hobo_temp))%>%
-        mutate(forecast_temp_sd = ifelse(is.na(hobo_temp_sd), sd, hobo_temp_sd))
+        mutate(forecast_temp_sd = sd)
     
     
     # Generate the data frame that is recognized by the jags model
@@ -232,11 +231,11 @@ for(s in 1:length(dates)){
     #Run JAGS model and sample from the posteriors
     eval_ebu  <- coda.samples(model = j.model,
                                variable.names = c("sd.pro", "mu2", "phi", "omega"),
-                               n.iter = 30000, n.burnin = 10000)
+                               n.iter = 10000, n.burnin = 1000)
 
     gelman_ebu <- gelman.diag(eval_ebu)
     
-    plot(eval_ebu)
+    #plot(eval_ebu)
     
     saveRDS(gelman_ebu, paste0("./forecast_output/ebu_model_gelman_diagnostics_",dates[s],".rds"))
     
@@ -244,7 +243,7 @@ for(s in 1:length(dates)){
     #Run JAGS model and sample from the posteriors
     jags.out   <- coda.samples(model = j.model,
                                variable.names = jags.params.ar, 
-                               n.iter = 30000, n.burnin = 10000)
+                               n.iter = 10000, n.burnin = 1000)
     
     #Use TidyBayes package to clean up the JAGS output
     ebu_out_forecast <- jags.out %>%
@@ -307,267 +306,267 @@ for(s in 1:length(dates)){
     #######################################################################################
     
     # #UNCERTAINTY PARTITIONING OF DATA
-    # ########################################################################################
-    # 
-    # # initial condition
-    # 
-    # hold_methane_pars <- T
-    # hold_methane_process <- T
-    # hold_FLARE_temp <- T
-    # hold_IC <- F
-    # 
-    # # Here is the meat of the AR model that is using temperature and
-    # 
-    # output <- matrix(ncol=420, nrow=11)
-    # 
-    #  for(m in 1:ncol(output)){
-    # 
-    #    if(hold_methane_pars){
-    #      mu2 <- sample(mean(ebu_out_parms$mu2, 11))
-    #      phi <- sample(mean(ebu_out_parms$phi, 11))
-    #      omega <- sample(mean(ebu_out_parms$omega, 11))
-    #    }else{
-    #      mu2 <- sample(ebu_out_parms$mu2, 11)
-    #      phi <- sample(ebu_out_parms$phi, 11)
-    #      omega <- sample(ebu_out_parms$omega, 11)
-    #    }
-    # 
-    #   if(hold_methane_process){
-    #     process_error <- 0
-    #   }else{
-    #     process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
-    #   }
-    # 
-    #   if(hold_FLARE_temp){
-    #     FLARE_temp <- forecast_save_temp$mean
-    #   }else{
-    #     FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-    #     
-    #   }
-    # 
-    #    if(hold_IC){
-    #      latent_ebu <- forecast_saved_ebu$mean
-    #    }else{
-    #      latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
-    #    }
-    # 
-    #   # This is the actual equation that is being run for the ebullition model
-    # 
-    #    output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
-    #    ebu_forecast <- as.data.frame(output)
-    # }
-    # 
-    # ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
-    # names(ebu_forecast)[1] <- "time"
-    # ebu_forecast <- melt(ebu_forecast, id = "time")
-    # 
-    # ebu_forecast_partition <- ebu_forecast %>%
-    #   group_by(time) %>%
-    #   summarise(mean = mean(value),
-    #             max = max(value),
-    #             min = min(value),
-    #             upper = quantile(value, 0.90),
-    #             lower = quantile(value, 0.10),
-    #             var = var(value),
-    #             sd = sd(value))%>%
-    #   mutate(forecast_date = start_forecast)
-    # 
-    # saveRDS(ebu_forecast_partition, paste0("./forecast_output/initial_condition_",dates[s],".rds"))
-    # 
-    # #DRIVER DATA
-    # 
-    # hold_methane_pars <- T
-    # hold_methane_process <- T
-    # hold_FLARE_temp <- F
-    # hold_IC <- T
-    # 
-    # # Here is the meat of the AR model that is using temperature and
-    # 
-    # output <- matrix(ncol=420, nrow=11)
-    # 
-    # for(m in 1:ncol(output)){
-    #   
-    #   if(hold_methane_pars){
-    #     mu2 <- sample(mean(ebu_out_parms$mu2, 11))
-    #     phi <- sample(mean(ebu_out_parms$phi, 11))
-    #     omega <- sample(mean(ebu_out_parms$omega, 11))
-    #   }else{
-    #     mu2 <- sample(ebu_out_parms$mu2, 11)
-    #     phi <- sample(ebu_out_parms$phi, 11)
-    #     omega <- sample(ebu_out_parms$omega, 11)
-    #   }
-    #   
-    #   if(hold_methane_process){
-    #     process_error <- 0
-    #   }else{
-    #     process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
-    #   }
-    #   
-    #   if(hold_FLARE_temp){
-    #     FLARE_temp <- forecast_save_temp$mean
-    #   }else{
-    #     FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-    #     
-    #   }
-    #   
-    #   if(hold_IC){
-    #     latent_ebu <- forecast_saved_ebu$mean
-    #   }else{
-    #     latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
-    #   }
-    #   
-    #   # This is the actual equation that is being run for the ebullition model
-    #   
-    #   output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
-    #   ebu_forecast <- as.data.frame(output)
-    # }
-    # 
-    # ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
-    # names(ebu_forecast)[1] <- "time"
-    # ebu_forecast <- melt(ebu_forecast, id = "time")
-    # 
-    # ebu_forecast_partition <- ebu_forecast %>%
-    #   group_by(time) %>%
-    #   summarise(mean = mean(value),
-    #             max = max(value),
-    #             min = min(value),
-    #             upper = quantile(value, 0.90),
-    #             lower = quantile(value, 0.10),
-    #             var = var(value),
-    #             sd = sd(value))%>%
-    #   mutate(forecast_date = start_forecast)
-    # 
-    # saveRDS(ebu_forecast_partition, paste0("./forecast_output/driver_data_",dates[s],".rds"))
-    # 
-    # #PROCESS
-    # 
-    # hold_methane_pars <- T
-    # hold_methane_process <- F
-    # hold_FLARE_temp <- T
-    # hold_IC <- T
-    # 
-    # # Here is the meat of the AR model that is using temperature and
-    # 
-    # output <- matrix(ncol=420, nrow=11)
-    # 
-    # for(m in 1:ncol(output)){
-    #   
-    #   if(hold_methane_pars){
-    #     mu2 <- sample(mean(ebu_out_parms$mu2, 11))
-    #     phi <- sample(mean(ebu_out_parms$phi, 11))
-    #     omega <- sample(mean(ebu_out_parms$omega, 11))
-    #   }else{
-    #     mu2 <- sample(ebu_out_parms$mu2, 11)
-    #     phi <- sample(ebu_out_parms$phi, 11)
-    #     omega <- sample(ebu_out_parms$omega, 11)
-    #   }
-    #   
-    #   if(hold_methane_process){
-    #     process_error <- 0
-    #   }else{
-    #     process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
-    #   }
-    #   
-    #   if(hold_FLARE_temp){
-    #     FLARE_temp <- forecast_save_temp$mean
-    #   }else{
-    #     FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-    #     
-    #   }
-    #   
-    #   if(hold_IC){
-    #     latent_ebu <- forecast_saved_ebu$mean
-    #   }else{
-    #     latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
-    #   }
-    #   
-    #   # This is the actual equation that is being run for the ebullition model
-    #   
-    #   output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
-    #   ebu_forecast <- as.data.frame(output)
-    # }
-    # 
-    # ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
-    # names(ebu_forecast)[1] <- "time"
-    # ebu_forecast <- melt(ebu_forecast, id = "time")
-    # 
-    # ebu_forecast_partition <- ebu_forecast %>%
-    #   group_by(time) %>%
-    #   summarise(mean = mean(value),
-    #             max = max(value),
-    #             min = min(value),
-    #             upper = quantile(value, 0.90),
-    #             lower = quantile(value, 0.10),
-    #             var = var(value),
-    #             sd = sd(value))%>%
-    #   mutate(forecast_date = start_forecast)
-    # 
-    # saveRDS(ebu_forecast_partition, paste0("./forecast_output/model_process_",dates[s],".rds"))
-    # 
-    # #paramter
-    # 
-    # hold_methane_pars <- F
-    # hold_methane_process <- T
-    # hold_FLARE_temp <- T
-    # hold_IC <- T
-    # 
-    # # Here is the meat of the AR model that is using temperature and
-    # 
-    # output <- matrix(ncol=420, nrow=11)
-    # 
-    # for(m in 1:ncol(output)){
-    #   
-    #   if(hold_methane_pars){
-    #     mu2 <- sample(mean(ebu_out_parms$mu2, 11))
-    #     phi <- sample(mean(ebu_out_parms$phi, 11))
-    #     omega <- sample(mean(ebu_out_parms$omega, 11))
-    #   }else{
-    #     mu2 <- sample(ebu_out_parms$mu2, 11)
-    #     phi <- sample(ebu_out_parms$phi, 11)
-    #     omega <- sample(ebu_out_parms$omega, 11)
-    #   }
-    #   
-    #   if(hold_methane_process){
-    #     process_error <- 0
-    #   }else{
-    #     process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
-    #   }
-    #   
-    #   if(hold_FLARE_temp){
-    #     FLARE_temp <- forecast_save_temp$mean
-    #   }else{
-    #     FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-    #     
-    #   }
-    #   
-    #   if(hold_IC){
-    #     latent_ebu <- forecast_saved_ebu$mean
-    #   }else{
-    #     latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
-    #   }
-    #   
-    #   # This is the actual equation that is being run for the ebullition model
-    #   
-    #   output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
-    #   ebu_forecast <- as.data.frame(output)
-    # }
-    # 
-    # ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
-    # names(ebu_forecast)[1] <- "time"
-    # ebu_forecast <- melt(ebu_forecast, id = "time")
-    # 
-    # ebu_forecast_partition <- ebu_forecast %>%
-    #   group_by(time) %>%
-    #   summarise(mean = mean(value),
-    #             max = max(value),
-    #             min = min(value),
-    #             upper = quantile(value, 0.90),
-    #             lower = quantile(value, 0.10),
-    #             var = var(value),
-    #             sd = sd(value))%>%
-    #   mutate(forecast_date = start_forecast)
-    # 
-    # saveRDS(ebu_forecast_partition, paste0("./forecast_output/model_parameter_",dates[s],".rds"))
-    # 
-    # ########################################################################################
+    ########################################################################################
+
+    # initial condition
+
+    hold_methane_pars <- T
+    hold_methane_process <- T
+    hold_FLARE_temp <- T
+    hold_IC <- F
+
+    # Here is the meat of the AR model that is using temperature and
+
+    output <- matrix(ncol=420, nrow=11)
+
+     for(m in 1:ncol(output)){
+
+       if(hold_methane_pars){
+         mu2 <- sample(mean(ebu_out_parms$mu2, 11))
+         phi <- sample(mean(ebu_out_parms$phi, 11))
+         omega <- sample(mean(ebu_out_parms$omega, 11))
+       }else{
+         mu2 <- sample(ebu_out_parms$mu2, 11)
+         phi <- sample(ebu_out_parms$phi, 11)
+         omega <- sample(ebu_out_parms$omega, 11)
+       }
+
+      if(hold_methane_process){
+        process_error <- 0
+      }else{
+        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+      }
+
+      if(hold_FLARE_temp){
+        FLARE_temp <- forecast_save_temp$mean
+      }else{
+        FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+
+      }
+
+       if(hold_IC){
+         latent_ebu <- forecast_saved_ebu$mean
+       }else{
+         latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+       }
+
+      # This is the actual equation that is being run for the ebullition model
+
+       output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
+       ebu_forecast <- as.data.frame(output)
+    }
+
+    ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
+    names(ebu_forecast)[1] <- "time"
+    ebu_forecast <- melt(ebu_forecast, id = "time")
+
+    ebu_forecast_partition <- ebu_forecast %>%
+      group_by(time) %>%
+      summarise(mean = mean(value),
+                max = max(value),
+                min = min(value),
+                upper = quantile(value, 0.90),
+                lower = quantile(value, 0.10),
+                var = var(value),
+                sd = sd(value))%>%
+      mutate(forecast_date = start_forecast)
+
+    saveRDS(ebu_forecast_partition, paste0("./forecast_output/initial_condition_",dates[s],".rds"))
+
+    #DRIVER DATA
+
+    hold_methane_pars <- T
+    hold_methane_process <- T
+    hold_FLARE_temp <- F
+    hold_IC <- T
+
+    # Here is the meat of the AR model that is using temperature and
+
+    output <- matrix(ncol=420, nrow=11)
+
+    for(m in 1:ncol(output)){
+
+      if(hold_methane_pars){
+        mu2 <- sample(mean(ebu_out_parms$mu2, 11))
+        phi <- sample(mean(ebu_out_parms$phi, 11))
+        omega <- sample(mean(ebu_out_parms$omega, 11))
+      }else{
+        mu2 <- sample(ebu_out_parms$mu2, 11)
+        phi <- sample(ebu_out_parms$phi, 11)
+        omega <- sample(ebu_out_parms$omega, 11)
+      }
+
+      if(hold_methane_process){
+        process_error <- 0
+      }else{
+        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+      }
+
+      if(hold_FLARE_temp){
+        FLARE_temp <- forecast_save_temp$mean
+      }else{
+        FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+
+      }
+
+      if(hold_IC){
+        latent_ebu <- forecast_saved_ebu$mean
+      }else{
+        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+      }
+
+      # This is the actual equation that is being run for the ebullition model
+
+      output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
+      ebu_forecast <- as.data.frame(output)
+    }
+
+    ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
+    names(ebu_forecast)[1] <- "time"
+    ebu_forecast <- melt(ebu_forecast, id = "time")
+
+    ebu_forecast_partition <- ebu_forecast %>%
+      group_by(time) %>%
+      summarise(mean = mean(value),
+                max = max(value),
+                min = min(value),
+                upper = quantile(value, 0.90),
+                lower = quantile(value, 0.10),
+                var = var(value),
+                sd = sd(value))%>%
+      mutate(forecast_date = start_forecast)
+
+    saveRDS(ebu_forecast_partition, paste0("./forecast_output/driver_data_",dates[s],".rds"))
+
+    #PROCESS
+
+    hold_methane_pars <- T
+    hold_methane_process <- F
+    hold_FLARE_temp <- T
+    hold_IC <- T
+
+    # Here is the meat of the AR model that is using temperature and
+
+    output <- matrix(ncol=420, nrow=11)
+
+    for(m in 1:ncol(output)){
+
+      if(hold_methane_pars){
+        mu2 <- sample(mean(ebu_out_parms$mu2, 11))
+        phi <- sample(mean(ebu_out_parms$phi, 11))
+        omega <- sample(mean(ebu_out_parms$omega, 11))
+      }else{
+        mu2 <- sample(ebu_out_parms$mu2, 11)
+        phi <- sample(ebu_out_parms$phi, 11)
+        omega <- sample(ebu_out_parms$omega, 11)
+      }
+
+      if(hold_methane_process){
+        process_error <- 0
+      }else{
+        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+      }
+
+      if(hold_FLARE_temp){
+        FLARE_temp <- forecast_save_temp$mean
+      }else{
+        FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+
+      }
+
+      if(hold_IC){
+        latent_ebu <- forecast_saved_ebu$mean
+      }else{
+        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+      }
+
+      # This is the actual equation that is being run for the ebullition model
+
+      output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
+      ebu_forecast <- as.data.frame(output)
+    }
+
+    ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
+    names(ebu_forecast)[1] <- "time"
+    ebu_forecast <- melt(ebu_forecast, id = "time")
+
+    ebu_forecast_partition <- ebu_forecast %>%
+      group_by(time) %>%
+      summarise(mean = mean(value),
+                max = max(value),
+                min = min(value),
+                upper = quantile(value, 0.90),
+                lower = quantile(value, 0.10),
+                var = var(value),
+                sd = sd(value))%>%
+      mutate(forecast_date = start_forecast)
+
+    saveRDS(ebu_forecast_partition, paste0("./forecast_output/model_process_",dates[s],".rds"))
+
+    #paramter
+
+    hold_methane_pars <- F
+    hold_methane_process <- T
+    hold_FLARE_temp <- T
+    hold_IC <- T
+
+    # Here is the meat of the AR model that is using temperature and
+
+    output <- matrix(ncol=420, nrow=11)
+
+    for(m in 1:ncol(output)){
+
+      if(hold_methane_pars){
+        mu2 <- sample(mean(ebu_out_parms$mu2, 11))
+        phi <- sample(mean(ebu_out_parms$phi, 11))
+        omega <- sample(mean(ebu_out_parms$omega, 11))
+      }else{
+        mu2 <- sample(ebu_out_parms$mu2, 11)
+        phi <- sample(ebu_out_parms$phi, 11)
+        omega <- sample(ebu_out_parms$omega, 11)
+      }
+
+      if(hold_methane_process){
+        process_error <- 0
+      }else{
+        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+      }
+
+      if(hold_FLARE_temp){
+        FLARE_temp <- forecast_save_temp$mean
+      }else{
+        FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+
+      }
+
+      if(hold_IC){
+        latent_ebu <- forecast_saved_ebu$mean
+      }else{
+        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+      }
+
+      # This is the actual equation that is being run for the ebullition model
+
+      output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
+      ebu_forecast <- as.data.frame(output)
+    }
+
+    ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
+    names(ebu_forecast)[1] <- "time"
+    ebu_forecast <- melt(ebu_forecast, id = "time")
+
+    ebu_forecast_partition <- ebu_forecast %>%
+      group_by(time) %>%
+      summarise(mean = mean(value),
+                max = max(value),
+                min = min(value),
+                upper = quantile(value, 0.90),
+                lower = quantile(value, 0.10),
+                var = var(value),
+                sd = sd(value))%>%
+      mutate(forecast_date = start_forecast)
+
+    saveRDS(ebu_forecast_partition, paste0("./forecast_output/model_parameter_",dates[s],".rds"))
+
+    ########################################################################################
 }

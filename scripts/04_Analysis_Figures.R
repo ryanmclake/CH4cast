@@ -14,7 +14,8 @@ trap_all <- list.files(pattern = "ebullition_hidden_markov_forecast_alltrap_20")
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
   group_by(forecast_date)%>%
-  mutate(days = days-1)
+  mutate(days = days-1)%>%
+  filter(forecast_date>"2019-06-10")
 
 trap_all_per_null <- list.files(pattern = "ebullition_null_persistence_forecast_alltrap_") %>%
   map(readRDS) %>% 
@@ -22,17 +23,21 @@ trap_all_per_null <- list.files(pattern = "ebullition_null_persistence_forecast_
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
   group_by(forecast_date)%>%
-  mutate(days = days-1)
+  mutate(days = days-1)%>%
+  filter(forecast_date>"2019-06-10")
 
 
 trap_compare <- left_join(trap_all, trap_all_per_null, by = "time")
 
 
 ### Gelman rubin doagnostics ###
-gelman <- list.files(pattern = "gelman_diagnostics_") %>%
+gelman_temp_model <- list.files(pattern = "temp_scale_gelman_diagnostics_") %>%
   map(readRDS) %>% 
   data.table::rbindlist()
 
+gelman_ebu_model <- list.files(pattern = "ebu_model_gelman_diagnostics_") %>%
+  map(readRDS) %>% 
+  data.table::rbindlist()
 
 ### Parameter estimates ###
 trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
@@ -134,12 +139,12 @@ ebullition_forecasts <- trap_all %>%
   geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_point(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 3) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: HHM forecast model (NSE = 0.70)")+
-  ylab(expression(paste("Forecasted CH"[4]," Ebullition Rate")))+
+  labs(title = "A: HHM forecast model")+
+  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,200))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-17")), ylim = c(0,200))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -158,12 +163,12 @@ null_forecasts <- trap_all_per_null %>%
   geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_point(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 3) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "B: Persistence null forecast model (NSE = 0.60)")+
-  ylab(expression(paste("ln(Forecasted CH"[4]," Ebullition Rate)")))+
+  labs(title = "B: Persistence null forecast model")+
+  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-27"),as.Date("2019-11-20")), ylim = c(0,200))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-17")), ylim = c(0,200))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -243,7 +248,7 @@ forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = Bias)) +
   labs(title = "A: Forecast bias")+
   ylab("Forecast bias")+
   xlab("")+
-  coord_cartesian(ylim = c(-2.5,2.5))+
+  coord_cartesian(ylim = c(-30,30))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -263,7 +268,7 @@ ts_bias <- ggplot(stats_all_bias, aes(x = time, y = Bias, group = model)) +
   labs(title = "B: Time series of forecast bias")+
   ylab("Forecast bias")+
   xlab("")+
-  coord_cartesian(ylim = c(-2.5,2.5))+
+  coord_cartesian(ylim = c(-30,30))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),

@@ -162,10 +162,19 @@ ebu$log_ebu_rate_sd[is.nan(as.numeric(ebu$log_ebu_rate_sd))] <- NA
 ebu$log_ebu_rate_sd[ebu$log_ebu_rate_sd == "-Inf"] <- NA
 
 # Join with all previous data and make the object that will feed directly into the Jags model
-full_ebullition_model <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
+full_ebullition_model_17 <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
   filter(time >= "2017-05-07") %>%
+  filter(time <= "2017-10-23") %>%
   rename(water_temp_dam = mean) %>%
   rename(water_temp_dam_sd = mean_sd)
+
+full_ebullition_model_19 <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
+  filter(time >= "2019-05-27") %>%
+  filter(time <= "2019-11-07") %>%
+  rename(water_temp_dam = mean) %>%
+  rename(water_temp_dam_sd = mean_sd)
+
+full_ebullition_model <- bind_rows(full_ebullition_model_17, full_ebullition_model_19)
 
 full_ebullition_model_alltrap <- full_ebullition_model%>%
   group_by(time)%>%
