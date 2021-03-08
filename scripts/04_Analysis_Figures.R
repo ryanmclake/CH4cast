@@ -51,7 +51,8 @@ trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
             mean_observe = mean(phi),
             sd_observe = sd(phi),
             mean_temp = mean(omega),
-            sd_temp = sd(omega))
+            sd_temp = sd(omega))%>%
+  filter(forecast_date>"2019-06-10")
 
 
 ##### UNCERTAINTY PARTITIONING DATA ####
@@ -189,7 +190,7 @@ dev.off()
 
 daily_variance <- trap_all %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = var, group = days)) +
+  ggplot(., aes(x = days, y = exp(var), group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
@@ -211,7 +212,7 @@ daily_variance <- trap_all %>%
 
 daily_variance_null <- trap_all_per_null %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = sd, group = days)) +
+  ggplot(., aes(x = days, y = exp(var), group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
@@ -232,9 +233,9 @@ daily_variance_null <- trap_all_per_null %>%
         legend.text = element_text(size = 16, color = "black"))
 
 
-fig4 <- daily_variance/daily_variance_null
+fig4 <- daily_variance
 
-jpeg("FIGURE_4.jpg", width = 600, height = 900)
+jpeg("FIGURE_4.jpg", width = 600, height = 600)
 fig4
 dev.off()
 
@@ -362,9 +363,8 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (temp+AR)/(intercept+process)
-
-
-jpeg("FIGURE_6.jpg", width = 800, height = 800)
+paramter = (AR+temp)
+jpeg("FIGURE_6.jpg", width = 800, height = 600)
 paramter
 dev.off()
 
